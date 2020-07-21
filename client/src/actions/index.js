@@ -74,56 +74,123 @@ export const instantiateContracts = () => async (dispatch, getState) => {
   });
 };
 
+// export const GET_ALL_PETS = 'GET_ALL_PETS';
+// export const getAllPets = () => async (dispatch, getState) => {
+//   const state = getState();
+//   let web3 = state.tomo.web3;
+//   const factory = state.tomo.factory;
+//   const account = state.tomo.account;
+//   let petArray = await factory.methods
+//     .getAllPetAddressOf(account)
+//     .call({ from: account });
+//   const pets = [];
+//   for (let i = 0; i < petArray.length; i++) {
+//     let pet = {
+//       instance: null,
+//       id: 0,
+//       amount: 0,
+//       time: 0,
+//       targetFund: 0,
+//       duration: 0,
+//       purpose: '',
+//     };
+//     pet.instance = new web3.eth.Contract(petWallet.abi, petArray[i], {
+//       transactionConfirmationBlocks: 1,
+//     });
+//     let petInfo = await pet.instance.methods.getInformation().call();
+//     pet.id = petInfo[0].toNumber();
+//     pet.amount = petInfo[1].toNumber();
+//     pet.time = petInfo[2].toNumber();
+//     pet.targetFund = petInfo[3].toNumber();
+//     pet.duration = petInfo[4].toNumber();
+//     pet.purpose = petInfo[5];
+//     pets.push(pet);
+//   }
+//   dispatch({
+//     type: GET_ALL_PETS,
+//     pets,
+//   });
+// };
+
 export const GET_ALL_PETS = 'GET_ALL_PETS';
 export const getAllPets = () => async (dispatch, getState) => {
   const state = getState();
-  let web3 = state.tomo.web3;
-  const factory = state.tomo.factory;
   const account = state.tomo.account;
-  let petArray = await factory.methods
-    .getAllPetAddressOf(account)
-    .call({ from: account });
+  let petArray = state.line.petAddresses[account];
   const pets = [];
-  for (let i = 0; i < petArray.length; i++) {
-    let pet = {
-      instance: null,
-      id: 0,
-      amount: 0,
-      time: 0,
-      targetFund: 0,
-      duration: 0,
-      purpose: '',
-    };
-    pet.instance = new web3.eth.Contract(petWallet.abi, petArray[i], {
-      transactionConfirmationBlocks: 1,
-    });
-    let petInfo = await pet.instance.methods.getInformation().call();
-    pet.id = petInfo[0].toNumber();
-    pet.amount = petInfo[1].toNumber();
-    pet.time = petInfo[2].toNumber();
-    pet.targetFund = petInfo[3].toNumber();
-    pet.duration = petInfo[4].toNumber();
-    pet.purpose = petInfo[5];
-    pets.push(pet);
+  if (petArray) {
+    for (let i = 0; i < petArray.length; i++) {
+      let pet = {
+        instance: null,
+        id: 0,
+        amount: 0,
+        time: 0,
+        targetFund: 0,
+        duration: 0,
+        purpose: '',
+      };
+      let petInfo = petArray[i];
+      console.log(petInfo);
+      pet.id = petInfo.petId;
+      pet.amount = petInfo.providentFund;
+      pet.time = petInfo.growthTime;
+      pet.targetFund = petInfo.targetFund;
+      pet.duration = petInfo.duration;
+      pet.purpose = petInfo.purpose;
+      pets.push(pet);
+    }
   }
+
   dispatch({
     type: GET_ALL_PETS,
     pets,
   });
 };
+
+// export const GET_ALL_PETS_ADDRESS = 'GET_ALL_PETS_ADDRESS';
+// export const getAllPetsAddress = () => async (dispatch, getState) => {
+//   const state = getState();
+//   const factory = state.tomo.factory;
+//   const account = state.tomo.account;
+//   let petsAddress = await factory.methods
+//     .getAllPetAddressOf(account)
+//     .call({ from: account });
+//   dispatch({
+//     type: GET_ALL_PETS_ADDRESS,
+//     petsAddress,
+//   });
+// };
+
 export const GET_ALL_PETS_ADDRESS = 'GET_ALL_PETS_ADDRESS';
 export const getAllPetsAddress = () => async (dispatch, getState) => {
   const state = getState();
-  const factory = state.tomo.factory;
   const account = state.tomo.account;
-  let petsAddress = await factory.methods
-    .getAllPetAddressOf(account)
-    .call({ from: account });
+  let petsAddress = state.line.petAddresses[account];
   dispatch({
     type: GET_ALL_PETS_ADDRESS,
     petsAddress,
   });
 };
+
+// export const CREATE_NEW_PET = 'CREATE_NEW_PET';
+// export const createNewPet = (petId, targetFund, duration, purpose) => async (
+//   dispatch,
+//   getState
+// ) => {
+//   const state = getState();
+//   const factory = state.tomo.factory;
+//   const account = state.tomo.account;
+//   const pets = state.tomo.pets;
+//   await factory.methods
+//     .create(petId, targetFund, duration, purpose)
+//     .send({ from: account })
+//     .then(() => {
+//       window.location.href = `/pets/${pets.length}`;
+//     })
+//     .catch((e) => {
+//       console.log('Create pet action error', e);
+//     });
+// };
 
 export const CREATE_NEW_PET = 'CREATE_NEW_PET';
 export const createNewPet = (petId, targetFund, duration, purpose) => async (
@@ -131,16 +198,35 @@ export const createNewPet = (petId, targetFund, duration, purpose) => async (
   getState
 ) => {
   const state = getState();
-  const factory = state.tomo.factory;
   const account = state.tomo.account;
   const pets = state.tomo.pets;
-  await factory.methods
-    .create(petId, targetFund, duration, purpose)
-    .send({ from: account })
-    .then(() => {
-      window.location.href = `/pets/${pets.length}`;
-    })
-    .catch((e) => {
-      console.log('Create pet action error', e);
-    });
+  let petAddresses = state.line.petAddresses;
+  let pet = {
+    petOwner: account,
+    petId: petId,
+    targetFund: targetFund,
+    duration: duration * 86400,
+    purpose: purpose,
+    initialTime: Date.now(),
+    lastTimeSavingMoney: Date.now(),
+    nextTimeFreezing: Date.now() + 3 * 86400,
+    providentFund: 0,
+    growthTime: 0,
+    lastTimeWithdrawMoney: 0,
+    isFreezing: false,
+  };
+  console.log(pet);
+  if (petAddresses[account]) {
+    petAddresses[account].push(pet);
+  } else {
+    petAddresses[account] = [];
+    petAddresses[account].push(pet);
+  }
+  // window.location.href = `/pets/${pets.length}`;
+  dispatch({
+    type: CREATE_NEW_PET,
+    petAddresses,
+  });
+  console.log(getState());
+  dispatch(getAllPets());
 };
