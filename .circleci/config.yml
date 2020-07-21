@@ -1,0 +1,79 @@
+# Javascript Node CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-javascript/ for more details
+#
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version you desire here
+      - image: circleci/node:11.10
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+      - run:
+          name: 'Update npm'
+          command: |
+            curl https://www.npmjs.com/install.sh | sudo bash
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package.json" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+
+      - run: npm i
+
+      # run tests!
+      - run: npm test
+
+      - run:
+          name: Sending notification
+          when: on_success
+          command: |
+            if [[ true ]];  then
+              curl -X POST -H "X-ChatWorkToken: $CHATWORK_TOKEN" -d \
+                "body=[info][title] $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME BUIL SUCCESS (flex) [/title]Repository name: $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME%0AAuthor: $CIRCLE_USERNAME%0ABranch: $CIRCLE_BRANCH%0ACommit request link: https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/commit/$CIRCLE_SHA1%0APull request link: $CIRCLE_PULL_REQUEST%0ABuild link: https://circleci.com/gh/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/$CIRCLE_BUILD_NUM[/info]" \
+                "https://api.chatwork.com/v2/rooms/$CHATWORK_ROOM/messages"
+            fi
+      - run:
+          name: Sending notification
+          when: on_fail
+          command: |
+            if [[ true ]];  then
+              curl -X POST -H "X-ChatWorkToken: $CHATWORK_TOKEN" -d \
+                "body=[info][title] $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME BUIL SUCCESS (anger) [/title]Repository name: $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME%0AAuthor: $CIRCLE_USERNAME%0ABranch: $CIRCLE_BRANCH%0ACommit request link: https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/commit/$CIRCLE_SHA1%0APull request link: $CIRCLE_PULL_REQUEST%0ABuild link: https://circleci.com/gh/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/$CIRCLE_BUILD_NUM[/info]" \
+                "https://api.chatwork.com/v2/rooms/$CHATWORK_ROOM/messages"
+            fi
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package.json" }}
+  deploy:
+    machine:
+      enabled: true
+
+    working_directory: ~/repo
+
+    steps:
+      - add_ssh_keys:
+          fingersprints:
+            - '5d:dc:47:89:77:c4:57:6e:42:32:c5:10:c8:b5:d4:08'
+      - run:
+          name: 'deploy'
+          command: ssh chientm@139.162.40.88 'cd crypto-pet && . deploy.sh'
+
+workflows:
+  version: 2
+
+  build_and_deploy:
+    jobs:
+      - build
+      - deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only: release
