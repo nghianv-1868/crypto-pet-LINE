@@ -1,5 +1,13 @@
 import React from 'react';
-import { Modal, ModalHeader, ModalBody, ModalFooter, Input, Form, Button } from 'reactstrap';
+import {
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Input,
+  Form,
+  Button,
+} from 'reactstrap';
 import store from 'store';
 import * as actions from 'actions';
 import Pet from 'constants/PetInformation';
@@ -11,7 +19,7 @@ class NewPetModal extends React.Component {
     super(props);
     this.state = {
       purpose: '',
-      chosenPet: null
+      chosenPet: null,
     };
 
     this.handleClick = this.handleClick.bind(this);
@@ -20,7 +28,9 @@ class NewPetModal extends React.Component {
   async handleClick() {
     let type = parseInt(
       document
-        .querySelector('div.slick-slide.slick-active.slick-current div.item-pet')
+        .querySelector(
+          'div.slick-slide.slick-active.slick-current div.item-pet'
+        )
         .getAttribute('data-type')
     );
 
@@ -29,7 +39,12 @@ class NewPetModal extends React.Component {
     });
 
     await store.dispatch(
-      actions.createNewPet(pet.type, pet.targetFund, pet.duration, this.state.purpose)
+      actions.createNewPet(
+        pet.type,
+        pet.targetFund,
+        pet.duration,
+        this.state.purpose
+      )
     );
   }
 
@@ -40,7 +55,11 @@ class NewPetModal extends React.Component {
   render() {
     return (
       <div>
-        <Modal className='modal-dialog' isOpen={this.props.isOpen} toggle={this.props.toggle}>
+        <Modal
+          className='modal-dialog'
+          isOpen={this.props.isOpen}
+          toggle={this.props.toggle}
+        >
           <ModalHeader toggle={this.props.toggle}>Create New Pet</ModalHeader>
           <ModalBody>
             <div>

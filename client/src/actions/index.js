@@ -1,6 +1,5 @@
 import getWeb3 from '../utils/getWeb3';
 import Factory from 'contracts/PetWalletFactory.json';
-import petWallet from 'contracts/PetWallet.json';
 
 export const WEB3_CONNECT = 'WEB3_CONNECT';
 export const web3Connect = () => async (dispatch) => {
@@ -116,8 +115,8 @@ export const GET_ALL_PETS = 'GET_ALL_PETS';
 export const getAllPets = () => async (dispatch, getState) => {
   const state = getState();
   const account = state.tomo.account;
-  let petArray = state.line.petAddresses[account];
   const pets = [];
+  let petArray = state.line.petAddresses[account];
   if (petArray) {
     for (let i = 0; i < petArray.length; i++) {
       let pet = {
@@ -130,7 +129,6 @@ export const getAllPets = () => async (dispatch, getState) => {
         purpose: '',
       };
       let petInfo = petArray[i];
-      console.log(petInfo);
       pet.id = petInfo.petId;
       pet.amount = petInfo.providentFund;
       pet.time = petInfo.growthTime;
@@ -193,13 +191,16 @@ export const getAllPetsAddress = () => async (dispatch, getState) => {
 // };
 
 export const CREATE_NEW_PET = 'CREATE_NEW_PET';
-export const createNewPet = (petId, targetFund, duration, purpose) => async (
-  dispatch,
-  getState
-) => {
+export const createNewPet = (
+  petId,
+  targetFund,
+  duration,
+  purpose,
+  Router
+) => async (dispatch, getState) => {
   const state = getState();
   const account = state.tomo.account;
-  const pets = state.tomo.pets;
+  let pets = state.tomo.pets;
   let petAddresses = state.line.petAddresses;
   let pet = {
     petOwner: account,
@@ -215,18 +216,71 @@ export const createNewPet = (petId, targetFund, duration, purpose) => async (
     lastTimeWithdrawMoney: 0,
     isFreezing: false,
   };
-  console.log(pet);
-  if (petAddresses[account]) {
+  if (petAddresses && petAddresses[account]) {
     petAddresses[account].push(pet);
   } else {
     petAddresses[account] = [];
     petAddresses[account].push(pet);
   }
-  // window.location.href = `/pets/${pets.length}`;
   dispatch({
     type: CREATE_NEW_PET,
     petAddresses,
   });
-  console.log(getState());
   dispatch(getAllPets());
+  console.log(Router);
+  // Router.push(`/pets/${pets.length}`);
+};
+
+export const FEED_PET = 'FEED_PET';
+export const feedPet = (value, petId, pet) => async (dispatch, getState) => {
+  const state = getState();
+  const balance = state.tomo.balance;
+  const account = state.tomo.account;
+  if (parseFloat(balance) > parseFloat(value)) {
+    // msg.sender.transfer(msg.value.sub(_sendValue * 1 ether));
+  }
+  pet.providentFund += value;
+
+  if (pet.lastTimeSavingMoney > pet.lastTimeWithdrawMoney) {
+    if (new Date().getTime() > pet.nextTimeFreezing) {
+      pet.growthTime += 3 * 86400;
+    } else {
+      pet.growthTime += new Date().getTime() - pet.lastTimeSavingMoney;
+    }
+  }
+
+  pet.isFreezing = false;
+  pet.lastTimeSavingMoney = new Date().getTime();
+  pet.nextTimeFreezing = new Date().getTime() + 3 * 86400;
+  let petAddresses = state.line.petAddresses;
+  petAddresses[account][petId] = pet;
+  console.log(getState());
+  dispatch({
+    type: FEED_PET,
+    petAddresses,
+  });
+};
+
+export const WITHDRAW = 'WITHDRAW';
+export const withdraw = (value, petId, pet) => async (dispatch, getState) => {
+  const state = getState();
+  const account = state.tomo.account;
+
+  if (pet.providentFund >= parseFloat(value) && parseFloat(value) > 0) {
+    if (pet.lastTimeWithdrawMoney <= pet.lastTimeSavingMoney) {
+      pet.growthTime += new Date().getTime() - pet.lastTimeSavingMoney;
+    }
+    pet.providentFund -= value;
+    pet.lastTimeWithdrawMoney = new Date().getTime();
+
+    if (!pet.isFreezing) {
+      pet.isFreezing = true;
+    }
+    let petAddresses = state.line.petAddresses;
+    petAddresses[account][petId] = pet;
+    dispatch({
+      type: WITHDRAW,
+      petAddresses,
+    });
+  }
 };
