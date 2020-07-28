@@ -1,32 +1,32 @@
 import getWeb3 from '../utils/getWeb3';
-import Factory from 'contracts/PetWalletFactory.json';
+import Factory from '../contracts/PetWalletFactory.json';
 
 export const WEB3_CONNECT = 'WEB3_CONNECT';
-export const web3Connect = () => async (dispatch) => {
-  const web3 = await getWeb3();
-  const accounts = await web3.eth.getAccounts();
-  if (web3.currentProvider.connection.networkVersion !== '89') {
-    alert('Unknown network, please change network to TomoChain network');
-    return;
-  }
-  if (accounts.length > 0) {
-    const account = accounts[0];
-    let balance = await web3.eth.getBalance(account);
-    balance = parseFloat(web3.utils.fromWei(balance)).toFixed(2);
-    dispatch({
-      type: WEB3_CONNECT,
-      web3,
-      account,
-      balance,
-    });
-  } else {
-    console.log('Account not found');
-  }
-  dispatch(instantiateContracts());
-  dispatch(getAllPets());
+export const web3Connect = () => async dispatch => {
+  // const web3 = await getWeb3();
+  // const accounts = await web3.eth.getAccounts();
+  // if (web3.currentProvider.connection.networkVersion !== '89') {
+  //   alert('Unknown network, please change network to TomoChain network');
+  //   return;
+  // }
+  // if (accounts.length > 0) {
+  //   const account = accounts[0];
+  //   let balance = await web3.eth.getBalance(account);
+  //   balance = parseFloat(web3.utils.fromWei(balance)).toFixed(2);
+  //   dispatch({
+  //     type: WEB3_CONNECT,
+  //     web3,
+  //     account,
+  //     balance,
+  //   });
+  // } else {
+  //   console.log('Account not found');
+  // }
+  // dispatch(instantiateContracts());
+  // dispatch(getAllPets());
 };
 
-export const web3TomoWalletConnect = () => async (dispatch) => {
+export const web3TomoWalletConnect = () => async dispatch => {
   var Web3 = require('web3');
   const web3 = new Web3(window.web3.currentProvider);
   window.web3.version.getNetwork((e, netId) => {
@@ -191,13 +191,10 @@ export const getAllPetsAddress = () => async (dispatch, getState) => {
 // };
 
 export const CREATE_NEW_PET = 'CREATE_NEW_PET';
-export const createNewPet = (
-  petId,
-  targetFund,
-  duration,
-  purpose,
-  Router
-) => async (dispatch, getState) => {
+export const createNewPet = (petId, targetFund, duration, purpose, Router) => async (
+  dispatch,
+  getState
+) => {
   const state = getState();
   const account = state.tomo.account;
   let pets = state.tomo.pets;
