@@ -7,7 +7,6 @@ import store from 'store';
 import * as actions from 'actions';
 import * as createjs from 'createjs-module';
 import StepProgressBar from './StepProgressBar';
-import petWallet from 'contracts/PetWallet.json';
 import Pet from 'constants/Pet';
 import { PetAction } from 'constants/PetAction';
 import Food from 'components/Food';
@@ -35,7 +34,7 @@ class PetDetail extends Component {
       yCoordinate: (window.innerHeight * 2) / 3,
       feed: true,
       feedButtonColor: 'success',
-      withDrawButtonColor: 'secondary'
+      withDrawButtonColor: 'secondary',
     };
     this.canvas = React.createRef();
     this.tick = this.tick.bind(this);
@@ -53,35 +52,34 @@ class PetDetail extends Component {
     }
     // await store.dispatch(actions.instantiateContracts());
     await store.dispatch(actions.getAllPetsAddress());
-    let PetInstance = new this.props.tomo.web3.eth.Contract(
-      petWallet.abi,
-      this.props.petsAddress[this.props.match.params.address],
-      {
-        transactionConfirmationBlocks: 1
-      }
-    );
-    this.stage = new createjs.Stage('canvas');
-    var divcanvas = document.getElementById('box-canvas');
+    let PetInstance = this.props.petsAddress
+      ? this.props.petsAddress[this.props.match.params.address]
+      : null;
+    if (PetInstance) {
+      this.stage = new createjs.Stage('canvas');
+      var divcanvas = document.getElementById('box-canvas');
 
-    this.stage.canvas.height = (divcanvas.clientHeight * 2) / 3 - 50;
-    this.stage.canvas.width = divcanvas.clientWidth;
-    this.setState({
-      petInstance: PetInstance,
-      xCoordinate: divcanvas.clientWidth / 2,
-      yCoordinate: (divcanvas.clientHeight * 2) / 3 - 100
-    });
-    this.getPetInfo();
+      this.stage.canvas.height = (divcanvas.clientHeight * 2) / 3 - 50;
+      this.stage.canvas.width = divcanvas.clientWidth;
+      this.setState({
+        petInstance: PetInstance,
+        xCoordinate: divcanvas.clientWidth / 2,
+        yCoordinate: (divcanvas.clientHeight * 2) / 3 - 100,
+      });
+      this.getPetInfo();
+    } else {
+      this.props.history.push('/');
+    }
   }
 
   async getPetInfo() {
-    let petInfo = Object.values(await this.state.petInstance.methods.getInformation().call());
+    let petInfo = this.state.petInstance;
     let [type, providentFund, growthTime, targetFund, duration] = [
-      petInfo[0].toNumber(),
-      petInfo[1].toNumber(),
-      petInfo[2].toNumber(),
-      petInfo[3].toNumber(),
-      petInfo[4].toNumber(),
-      petInfo[5]
+      petInfo.petId,
+      petInfo.providentFund,
+      petInfo.growthTime,
+      petInfo.targetFund,
+      petInfo.purpose,
     ];
     console.log('providentFund', providentFund);
     this.setState({ type, providentFund, growthTime, targetFund, duration });
@@ -96,12 +94,12 @@ class PetDetail extends Component {
     for (let element of progressArray) {
       if (progress < element.milestone) {
         this.setState({
-          progress: element.index - 1
+          progress: element.index - 1,
         });
         return;
       }
       this.setState({
-        progress: progressArray.length - 1
+        progress: progressArray.length - 1,
       });
     }
   }
@@ -112,7 +110,7 @@ class PetDetail extends Component {
     for (let element of sizeArray) {
       if (size >= element.milestone) {
         this.setState({
-          scale: element.scale
+          scale: element.scale,
         });
       }
     }
@@ -120,43 +118,57 @@ class PetDetail extends Component {
 
   feedPet = async (value) => {
     let PetInstance = this.state.petInstance;
-    await PetInstance.methods
-      .savingMoney(value)
-      .send({ from: this.props.tomo.account, value: value * 10 ** 18 })
-      .on('transactionHash', (hash) => {
-        this.setState({
-          action: PetAction.FEED
-        });
-        this.action();
-      })
-      .on('receipt', (receipt) => {
-        this.getPetInfo();
-      })
-      .on('error', () => {
-        alert('Transaction failed');
-        this.setState({ action: PetAction.DEFAULT });
-        this.action();
-      });
+    let petId = this.props.match.params.address;
+    await store.dispatch(actions.feedPet(value, petId, PetInstance));
+    this.setState({
+      action: PetAction.FEED,
+    });
+    this.action();
+    this.getPetInfo();
+
+    // await PetInstance.methods
+    //   .savingMoney(value)
+    //   .send({ from: this.props.tomo.account, value: value * 10 ** 18 })
+    //   .on('transactionHash', (hash) => {
+    //     this.setState({
+    //       action: PetAction.FEED,
+    //     });
+    //     this.action();
+    //   })
+    //   .on('receipt', (receipt) => {
+    //     this.getPetInfo();
+    //   })
+    //   .on('error', () => {
+    //     alert('Transaction failed');
+    //     this.setState({ action: PetAction.DEFAULT });
+    //     this.action();
+    //   });
   };
 
   withDraw = async (value) => {
     let amount = Math.ceil((this.state.providentFund * value) / 100);
     let PetInstance = this.state.petInstance;
-    await PetInstance.methods
-      .withdrawMoney(amount)
-      .send({ from: this.props.tomo.account })
-      .on('transactionHash', (hash) => {
-        this.setState({ action: PetAction.WITHDRAW });
-        this.action();
-      })
-      .on('receipt', (receipt) => {
-        this.getPetInfo();
-      })
-      .on('error', () => {
-        alert('Transaction failed');
-        this.setState({ action: PetAction.DEFAULT });
-        this.action();
-      });
+    let petId = this.props.match.params.address;
+    await store.dispatch(actions.withdraw(amount, petId, PetInstance));
+    this.setState({ action: PetAction.WITHDRAW });
+    this.action();
+    this.getPetInfo();
+
+    // await PetInstance.methods
+    //   .withdrawMoney(amount)
+    //   .send({ from: this.props.tomo.account })
+    //   .on('transactionHash', (hash) => {
+    //     this.setState({ action: PetAction.WITHDRAW });
+    //     this.action();
+    //   })
+    //   .on('receipt', (receipt) => {
+    //     this.getPetInfo();
+    //   })
+    //   .on('error', () => {
+    //     alert('Transaction failed');
+    //     this.setState({ action: PetAction.DEFAULT });
+    //     this.action();
+    //   });
   };
   action() {
     let divcanvas = document.getElementById('box-canvas');
@@ -165,11 +177,18 @@ class PetDetail extends Component {
     img.src = Pet[this.state.type].background.src;
     let background = new createjs.Bitmap(img);
     background.image.onload = () => {
-      background.sourceRect = new createjs.Rectangle(0, 0, img.width, img.height);
+      background.sourceRect = new createjs.Rectangle(
+        0,
+        0,
+        img.width,
+        img.height
+      );
       background.scaleX = Pet[this.state.type].background.scaleX;
       background.scaleY = Pet[this.state.type].background.scaleY;
-      background.x = divcanvas.clientWidth / 2 - (img.width * background.scaleX) / 2;
-      background.y = this.stage.canvas.height - img.height * background.scaleY - 50;
+      background.x =
+        divcanvas.clientWidth / 2 - (img.width * background.scaleX) / 2;
+      background.y =
+        this.stage.canvas.height - img.height * background.scaleY - 50;
     };
 
     let petAction = new createjs.SpriteSheet(
@@ -203,20 +222,22 @@ class PetDetail extends Component {
     }
 
     createjs.Ticker.framerate =
-      Pet[this.state.type].progress[this.state.progress].item[this.state.action].framerate;
+      Pet[this.state.type].progress[this.state.progress].item[
+        this.state.action
+      ].framerate;
   }
   handleFeedClick = () => {
     this.setState({
       feed: true,
       feedButtonColor: 'success',
-      withDrawButtonColor: 'secondary'
+      withDrawButtonColor: 'secondary',
     });
   };
   handleWithdrawClick = () => {
     this.setState({
       feed: false,
       withDrawButtonColor: 'danger',
-      feedButtonColor: 'secondary'
+      feedButtonColor: 'secondary',
     });
   };
   render() {
@@ -229,9 +250,15 @@ class PetDetail extends Component {
                 <div className='fund_tracking'>
                   <div className='fund-circle-tracking'>
                     <CircularProgressbarWithChildren
-                      value={(this.state.providentFund / this.state.targetFund) * 100}
+                      value={
+                        (this.state.providentFund / this.state.targetFund) * 100
+                      }
                     >
-                      <img alt='' src={require('assets/img/giphy.webp')} width='40' />
+                      <img
+                        alt=''
+                        src={require('assets/img/giphy.webp')}
+                        width='40'
+                      />
                       <div className='fund-circle-tracking-info'>
                         <strong>
                           {this.state.providentFund} / {this.state.targetFund}
@@ -245,7 +272,9 @@ class PetDetail extends Component {
               <Col>
                 <div className='growth_tracking'>
                   <StepProgressBar
-                    percent={(this.state.growthTime / this.state.duration) * 100}
+                    percent={
+                      (this.state.growthTime / this.state.duration) * 100
+                    }
                     step={Pet[this.state.type].progress.length}
                     type={this.state.type}
                   />
@@ -283,7 +312,10 @@ class PetDetail extends Component {
                 <Link to={`/`}>
                   <span className='pushme'>
                     <span className='inner' onClick={this.toggleNewPet}>
-                      <img alt='pet' src={require('assets/img/home-page.png')} />{' '}
+                      <img
+                        alt='pet'
+                        src={require('assets/img/home-page.png')}
+                      />{' '}
                     </span>
                   </span>
                 </Link>
@@ -291,16 +323,23 @@ class PetDetail extends Component {
               <div className='box'>
                 <div className='icons row'>
                   <div
-                    className={(this.state.feed ? 'active-click' : '') + ' move-left'}
+                    className={
+                      (this.state.feed ? 'active-click' : '') + ' move-left'
+                    }
                     onClick={this.handleFeedClick}
                   >
                     <img alt='feed' src={require('assets/img/plus-math.png')} />
                   </div>
                   <div
-                    className={(!this.state.feed ? 'active-click' : '') + ' move-right'}
+                    className={
+                      (!this.state.feed ? 'active-click' : '') + ' move-right'
+                    }
                     onClick={this.handleWithdrawClick}
                   >
-                    <img alt='withDraw' src={require('assets/img/minus-math.png')} />
+                    <img
+                      alt='withDraw'
+                      src={require('assets/img/minus-math.png')}
+                    />
                   </div>
                 </div>
               </div>
@@ -315,7 +354,7 @@ class PetDetail extends Component {
 const mapStateToProps = (state) => {
   return {
     tomo: state.tomo,
-    petsAddress: state.tomo.petsAddress
+    petsAddress: state.tomo.petsAddress,
   };
 };
 

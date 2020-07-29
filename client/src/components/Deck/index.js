@@ -12,7 +12,7 @@ class PetDeck extends React.Component {
     super(props);
     this.state = {
       isOpenNewPet: false,
-      isOpenAccount: false
+      isOpenAccount: false,
     };
     this.toggleAccount = this.toggleAccount.bind(this);
     this.toggleNewPet = this.toggleNewPet.bind(this);
@@ -20,13 +20,13 @@ class PetDeck extends React.Component {
 
   toggleNewPet() {
     this.setState({
-      isOpenNewPet: !this.state.isOpenNewPet
+      isOpenNewPet: !this.state.isOpenNewPet,
     });
   }
 
   toggleAccount() {
     this.setState({
-      isOpenAccount: !this.state.isOpenAccount
+      isOpenAccount: !this.state.isOpenAccount,
     });
   }
 
@@ -38,7 +38,10 @@ class PetDeck extends React.Component {
           toggle={this.toggleAccount}
           account={this.props.account}
         />
-        <NewPetModal isOpen={this.state.isOpenNewPet} toggle={this.toggleNewPet} />
+        <NewPetModal
+          isOpen={this.state.isOpenNewPet}
+          toggle={this.toggleNewPet}
+        />
         <div className='box-button-create'>
           <div className='row margin-0'>
             <div className='infor-pet col-8'>
@@ -56,7 +59,9 @@ class PetDeck extends React.Component {
             <div className='avatar'>
               <img
                 alt='...'
-                src={'https://robohash.org/' + this.props.account + '.png?set=set4'}
+                src={
+                  'https://robohash.org/' + this.props.account + '.png?set=set4'
+                }
                 width='40px'
                 height='40px'
                 className='account-avatar'
@@ -99,7 +104,7 @@ const mapStatetoProps = (state) => {
   return {
     pets: state.tomo.pets,
     account: state.tomo.account,
-    balance: state.tomo.balance
+    balance: state.tomo.balance,
   };
 };
 export default compose(connect(mapStatetoProps))(PetDeck);
